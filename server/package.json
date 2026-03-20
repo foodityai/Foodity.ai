@@ -1,0 +1,24 @@
+{
+  "name": "foodity-ai-server",
+  "version": "1.0.0",
+  "description": "Backend API for Foodity AI",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.2",
+    "@tavily/core": "^0.7.2",
+    "axios": "^1.13.6",
+    "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
