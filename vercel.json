@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "cleanUrls": true,
+  "trailingSlash": false,
   "builds": [
     {
       "src": "client/package.json",
@@ -19,8 +21,12 @@
       "destination": "/server/server.js"
     },
     {
+      "source": "/assets/(.*)",
+      "destination": "/client/dist/assets/$1"
+    },
+    {
       "source": "/(.*)",
-      "destination": "/client/dist/$1"
+      "destination": "/client/dist/index.html"
     }
   ]
 }
