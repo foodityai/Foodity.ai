@@ -1,6 +1,8 @@
 import { getAIResponse, performWebSearch, generateChatSummary } from '../services/groqService.js';
-import { processNutritionQuery, classifyQuery, cacheHandler } from '../services/nutritionIntelligence.js';
+import { processNutritionQuery, cacheHandler } from '../services/nutritionIntelligence.js';
+import { detectIntent } from '../services/intentService.js';
 import { supabase } from '../config/supabaseClient.js';
+import { getCachedAIResponse, setCachedAIResponse } from '../services/cacheService.js';
 import { buildContext } from '../services/contextService.js';
 import { format, parseISO } from 'date-fns';
 
@@ -138,20 +140,32 @@ try {
   }]);
   await incrementUsage(userId, 'messages_today');
 
-  // --- Fetch last messages (History Context) ---
-  let history = [];
-  const { data: pastMessages } = await supabase
-    .from('messages')
-    .select('role, content')
-    .eq('chat_id', activeChatId)
-    .order('created_at', { ascending: false })
-    .limit(10);
+  // ── STEP 1: Fast Intent Detection (Zero-Token Strategy) ───────────────
+  const intent = detectIntent(message);
   
-  if (pastMessages) {
-    // Reverse it back to chronological order
-    history = pastMessages.reverse();
-    // Remove the current user message we just inserted so we don't duplicate it in groqService
-    history.pop(); 
+  if (intent.type === 'greeting' || intent.type === 'simple') {
+    // Generate an instant reply to save 1,500+ LLM tokens and API calls
+    await supabase.from('messages').insert([{ chat_id: activeChatId, role: 'assistant', content: intent.reply }]);
+    return res.json({ reply: intent.reply, chat_id: activeChatId, sources: [], queryType: intent.type });
+  }
+
+  // --- Fetch last messages (History Context) ---
+  // Token Optimization: Only fetch history if the intent is a followup
+  let history = [];
+  if (intent.type === 'followup') {
+    const { data: pastMessages } = await supabase
+      .from('messages')
+      .select('role, content')
+      .eq('chat_id', activeChatId)
+      .order('created_at', { ascending: false })
+      .limit(6);
+    
+    if (pastMessages) {
+      // Reverse it back to chronological order
+      history = pastMessages.reverse();
+      // Remove the current user message we just inserted so we don't duplicate it in groqService
+      history.pop(); 
+    }
   }
 
   // --- Web search (optional) ---
@@ -163,21 +177,6 @@ try {
     await incrementUsage(userId, 'searches_today');
   }
 
-  // ── STEP 1: Query classification — skip all APIs for greetings ───────────────
-  const queryType = classifyQuery(message);
-  if (queryType === 'greeting') {
-    // Fast path — no DB, no API, just a quick friendly reply
-    const greetingReplies = [
-      `Hey ${profile.username || 'there'}! 👋 What food or nutrition question can I help you with today?`,
-      `Hello! 😊 I'm Foodity AI — ask me anything about food, nutrition, or your health goals!`,
-      `Hi there! 🥗 Ready to help with nutrition advice, calorie counts, or meal planning!`,
-    ];
-    const reply = greetingReplies[Math.floor(Date.now() / 1000) % greetingReplies.length];
-
-    // Still save to DB
-    await supabase.from('messages').insert([{ chat_id: activeChatId, role: 'assistant', content: reply }]);
-    return res.json({ reply, chat_id: activeChatId, sources: [] });
-  }
 
   // ── STEP 2: Nutrition Intelligence Pipeline (USDA + Search + Model + Cache) ──
   let nutritionContext = null;
@@ -244,8 +243,23 @@ try {
     }
   }
 
-  // --- Generate AI response ---
-  const aiReply = await getAIResponse(message, nutritionContext, searchResults, userContext, history, mealLog);
+  // --- Generate AI response (with Zero-Token Caching) ---
+  const isCacheable = (intent.type === 'nutrition' || intent.type === 'unknown') && 
+                      !search && 
+                      history.length === 0 && 
+                      !message.toLowerCase().includes('today') && 
+                      !message.toLowerCase().includes('history');
+  
+  let aiReply = '';
+  if (isCacheable && getCachedAIResponse(message)) {
+    aiReply = getCachedAIResponse(message);
+    console.log(`[LLM Cache HIT] Returning 0-token format for: "${message}"`);
+  } else {
+    aiReply = await getAIResponse(message, nutritionContext, searchResults, userContext, history, mealLog);
+    if (isCacheable) {
+      setCachedAIResponse(message, aiReply);
+    }
+  }
 
   // --- Save AI response ---
   await supabase.from('messages').insert([{
@@ -259,7 +273,7 @@ try {
     chat_id: activeChatId,
     title: chatTitle || undefined,
     sources,
-    queryType: queryType || 'general',
+    queryType: intent.type || 'nutrition',
     nutritionData: nutritionContext || null,
   });
 } catch (error) {

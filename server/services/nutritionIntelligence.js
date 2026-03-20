@@ -11,6 +11,7 @@
  * Cache:             In-memory per process (survives restart if upgraded to Redis)
  */
 
+import '../config/env.js';
 import axios from 'axios';
 import { tavily } from '@tavily/core';
 

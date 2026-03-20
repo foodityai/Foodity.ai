@@ -1,13 +1,10 @@
-import dotenv from 'dotenv';
+import './config/env.js';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 
 import authRoutes from './routes/auth.js';
 import chatRoutes from './routes/chat.js';
-
-// Setup environment variables
-dotenv.config({ path: '../.env' });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
