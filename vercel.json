@@ -9,6 +9,10 @@
       "config": {
         "distDir": "dist"
       }
+    },
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
     }
   ],
   "rewrites": [
@@ -17,7 +21,7 @@
       "destination": "/client/dist/assets/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api/).*)",
       "destination": "/client/dist/index.html"
     }
   ]
