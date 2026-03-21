@@ -5,34 +5,41 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 
-function MessageContent({ content }) {
-  useEffect(() => {
-    const boxes = document.querySelectorAll('.nutrition-box');
-    boxes.forEach(box => {
-      const header = box.querySelector('.nutrition-header');
-      if (!header) return;
-      
-      // Use direct onclick to ensure we don't stack listeners on re-renders
-      header.onclick = () => {
-        box.classList.toggle('active');
-        const icon = header.textContent.startsWith('▶') ? '▼' : '▶';
-        const label = box.classList.contains('active') ? 'Collapse Nutrition' : 'Show More Nutrition';
-        header.textContent = `${icon} ${label}`;
-      };
-    });
-  }, [content]);
+// Preprocess: convert bullet lines (• item) inside <details> into proper HTML <li>
+// Also convert top-level • bullet lines into proper markdown list items so they render as vertical bullets
+function preprocessContent(raw) {
+  if (!raw) return raw;
 
+  // 1. Inside <details>...</details>, convert "• text" lines to "<li>text</li>"
+  raw = raw.replace(/<details>([\s\S]*?)<\/details>/gi, (match, inner) => {
+    // Replace bullet lines inside details with <li> tags, wrapped in <ul>
+    const processed = inner.replace(/(^|\n)([ \t]*)•[ \t]+([^\n]+)/g, (_, nl, indent, text) => {
+      return `${nl}${indent}<li>${text.trim()}</li>`;
+    });
+    // Wrap consecutive <li> lines in <ul>
+    const wrapped = processed.replace(/((?:<li>.*<\/li>\n?)+)/g, (liBlock) => `<ul class="detail-list">${liBlock}</ul>`);
+    return `<details>${wrapped}</details>`;
+  });
+
+  // 2. Top-level bullet lines: convert "• item" to "- item" for ReactMarkdown to handle as list
+  raw = raw.replace(/(^|\n)•[ \t]+([^\n]+)/g, (_, nl, text) => `${nl}- ${text}`);
+
+  return raw;
+}
+
+function MessageContent({ content }) {
+  const processedContent = preprocessContent(content);
   return (
     <div className="prose prose-sm prose-invert max-w-none text-[15px] leading-relaxed">
       <style>{`
-        .nutrition-box {
+        details {
           border: 1px solid rgba(34, 197, 94, 0.2);
           border-radius: 12px;
           margin-top: 10px;
           padding: 6px;
           background: rgba(0, 0, 0, 0.05);
         }
-        .nutrition-header {
+        summary {
           cursor: pointer;
           color: #22c55e;
           font-weight: 600;
@@ -40,18 +47,35 @@ function MessageContent({ content }) {
           border-radius: 8px;
           transition: background 0.2s;
           user-select: none;
+          list-style: none;
         }
-        .nutrition-header:hover {
+        summary::-webkit-details-marker {
+          display: none;
+        }
+        summary:hover {
           background: rgba(34, 197, 94, 0.1);
         }
-        .nutrition-content {
-          display: none;
-          padding: 8px;
-          border-top: 1px solid rgba(34, 197, 94, 0.1);
-          margin-top: 4px;
+        details[open] summary {
+          margin-bottom: 8px;
+          border-bottom: 1px solid rgba(34, 197, 94, 0.1);
+          padding-bottom: 12px;
         }
-        .nutrition-box.active .nutrition-content {
-          display: block;
+        details ul.detail-list {
+          list-style: none;
+          padding: 4px 8px;
+          margin: 0;
+        }
+        details ul.detail-list li {
+          display: flex;
+          gap: 8px;
+          align-items: flex-start;
+          margin: 4px 0;
+        }
+        details ul.detail-list li::before {
+          content: '•';
+          color: #22c55e;
+          font-weight: bold;
+          flex-shrink: 0;
         }
       `}</style>
 
@@ -87,7 +111,7 @@ function MessageContent({ content }) {
           td: ({ children }) => <td className="p-2 border-b border-black/5 dark:border-white/5 last:border-0">{children}</td>,
         }}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );

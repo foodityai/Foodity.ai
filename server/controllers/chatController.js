@@ -1,6 +1,5 @@
 import { getAIResponse, performWebSearch, generateChatSummary } from '../services/groqService.js';
 import { processNutritionQuery, cacheHandler } from '../services/nutritionIntelligence.js';
-import { detectIntent } from '../services/intentService.js';
 import { supabase } from '../config/supabaseClient.js';
 import { getCachedAIResponse, setCachedAIResponse } from '../services/cacheService.js';
 import { buildContext } from '../services/contextService.js';
@@ -140,32 +139,19 @@ try {
   }]);
   await incrementUsage(userId, 'messages_today');
 
-  // ── STEP 1: Fast Intent Detection (Zero-Token Strategy) ───────────────
-  const intent = detectIntent(message);
-  
-  if (intent.type === 'greeting' || intent.type === 'simple') {
-    // Generate an instant reply to save 1,500+ LLM tokens and API calls
-    await supabase.from('messages').insert([{ chat_id: activeChatId, role: 'assistant', content: intent.reply }]);
-    return res.json({ reply: intent.reply, chat_id: activeChatId, sources: [], queryType: intent.type });
-  }
-
   // --- Fetch last messages (History Context) ---
-  // Token Optimization: Only fetch history if the intent is a followup
   let history = [];
-  if (intent.type === 'followup') {
-    const { data: pastMessages } = await supabase
-      .from('messages')
-      .select('role, content')
-      .eq('chat_id', activeChatId)
-      .order('created_at', { ascending: false })
-      .limit(6);
-    
-    if (pastMessages) {
-      // Reverse it back to chronological order
-      history = pastMessages.reverse();
-      // Remove the current user message we just inserted so we don't duplicate it in groqService
-      history.pop(); 
-    }
+  const { data: pastMessages } = await supabase
+    .from('messages')
+    .select('role, content')
+    .eq('chat_id', activeChatId)
+    .order('created_at', { ascending: false })
+    .limit(10);
+  
+  if (pastMessages) {
+    history = pastMessages.reverse();
+    // Remove the current user message we just inserted so we don't duplicate it in groqService
+    history.pop(); 
   }
 
   // --- Web search (optional) ---
@@ -243,9 +229,8 @@ try {
     }
   }
 
-  // --- Generate AI response (with Zero-Token Caching) ---
-  const isCacheable = (intent.type === 'nutrition' || intent.type === 'unknown') && 
-                      !search && 
+  // --- Generate AI response (with System Caching) ---
+  const isCacheable = !search && 
                       history.length === 0 && 
                       !message.toLowerCase().includes('today') && 
                       !message.toLowerCase().includes('history');
@@ -253,7 +238,7 @@ try {
   let aiReply = '';
   if (isCacheable && getCachedAIResponse(message)) {
     aiReply = getCachedAIResponse(message);
-    console.log(`[LLM Cache HIT] Returning 0-token format for: "${message}"`);
+    console.log(`[LLM Cache HIT] Returning cached format for: "${message}"`);
   } else {
     aiReply = await getAIResponse(message, nutritionContext, searchResults, userContext, history, mealLog);
     if (isCacheable) {
@@ -273,7 +258,7 @@ try {
     chat_id: activeChatId,
     title: chatTitle || undefined,
     sources,
-    queryType: intent.type || 'nutrition',
+    queryType: 'nutrition',
     nutritionData: nutritionContext || null,
   });
 } catch (error) {

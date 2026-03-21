@@ -240,42 +240,37 @@ export async function searchNutrition(query) {
     const results = result.results || [];
     if (results.length === 0) return null;
 
-    // Extract numbers from snippet text using regex
     const combined = results.map(r => `${r.title} ${r.content}`).join(' ');
 
-    const extract = (patterns) => {
-      for (const re of patterns) {
-        const m = combined.match(re);
-        if (m && m[1]) {
-          const v = parseFloat(m[1].replace(/,/g, ''));
-          if (v > 0 && v < 10000) return v;
-        }
-      }
-      return null;
-    };
+    const prompt = `Extract nutrition data from this web search snippet. Return ONLY a pure JSON object.
+Do not use markdown blocks. Use null if a value is missing.
+{ "calories": <number>, "protein": <number>, "carbs": <number>, "fat": <number>, "fiber": <number> }
+Text: "${combined}"`;
 
+    const groqKey = nextKey('groq');
+    if (!groqKey) return null;
+
+    const gres = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'system', content: prompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.1,
+      })
+    });
+
+    const gdata = await gres.json();
+    if (!gres.ok) return null;
+
+    const parsed = JSON.parse(gdata.choices[0].message.content);
     return {
-      calories: extract([
-        /(\d+\.?\d*)\s*(?:kcal|calories|cal)/i,
-        /calories[:\s]+(\d+\.?\d*)/i,
-      ]),
-      protein: extract([
-        /protein[:\s]+(\d+\.?\d*)\s*g/i,
-        /(\d+\.?\d*)\s*g\s*(?:of\s*)?protein/i,
-      ]),
-      carbs: extract([
-        /carbohydrates?[:\s]+(\d+\.?\d*)\s*g/i,
-        /carbs?[:\s]+(\d+\.?\d*)\s*g/i,
-        /(\d+\.?\d*)\s*g\s*(?:of\s*)?carbs?/i,
-      ]),
-      fat: extract([
-        /fat[:\s]+(\d+\.?\d*)\s*g/i,
-        /(\d+\.?\d*)\s*g\s*(?:of\s*)?fat/i,
-      ]),
-      fiber: extract([
-        /fiber[:\s]+(\d+\.?\d*)\s*g/i,
-        /fibre[:\s]+(\d+\.?\d*)\s*g/i,
-      ]),
+      calories: parsed.calories || null,
+      protein: parsed.protein || null,
+      carbs: parsed.carbs || null,
+      fat: parsed.fat || null,
+      fiber: parsed.fiber || null,
       source: 'search',
       urls: results.map(r => r.url),
     };
@@ -301,7 +296,8 @@ If unsure, give a best-estimate based on standard values (e.g. USDA SR Legacy).
 For Indian regional foods, use standard Indian nutritional references.
 Be consistent — same food must always return same numbers.`;
 
-  const userPrompt = `Provide nutrition data for: ${qty} ${unit} of "${foodName}".
+  const userPrompt = `Provide nutrition data for: 1 standard serving (or 100g if appropriate) of "${foodName}".
+Do NOT scale the nutrition for ${qty} ${unit}, just provide standard single-unit base values so our math formula can multiply it later.
 Return ONLY this exact JSON (no markdown, no explanation). For nutrients use numeric value, or null if unknown:
 {
   "calories": <number>,

@@ -1,4 +1,4 @@
-
+import './config/env.js';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -18,14 +18,12 @@ app.use('/api', authRoutes);
 app.use('/api', chatRoutes);
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'Foodity AI API' });
+  res.status(200).json({ status: 'ok', service: 'Foodity AI API (Traditional Express)' });
 });
 
-// Dual-mode support: Listen locally, export for Vercel
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
+// START SERVER
+app.listen(PORT, () => {
+  console.log(`Foodity Express Server running on port ${PORT}`);
+});
 
 export default app;
