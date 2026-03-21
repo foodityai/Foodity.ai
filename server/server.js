@@ -7,23 +7,40 @@ import authRoutes from './routes/auth.js';
 import chatRoutes from './routes/chat.js';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// ✅ CORS (allow all for now, restrict later)
+app.use(cors({
+  origin: "*"
+}));
+
+// ✅ Middleware
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Routes
+// ✅ Routes
 app.use('/api', authRoutes);
 app.use('/api', chatRoutes);
 
+// ✅ Health check (for Render test)
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'Foodity AI API (Traditional Express)' });
+  res.status(200).json({
+    status: 'ok',
+    service: 'Foodity AI API',
+    time: new Date()
+  });
 });
 
-// START SERVER
+// ✅ Root route (optional)
+app.get('/', (req, res) => {
+  res.send("🚀 Foodity Backend Running");
+});
+
+// ✅ PORT (Render compatible)
+const PORT = process.env.PORT || 5000;
+
+// ✅ Start server
 app.listen(PORT, () => {
-  console.log(`Foodity Express Server running on port ${PORT}`);
+  console.log(`🔥 Server running on port ${PORT}`);
 });
 
 export default app;
