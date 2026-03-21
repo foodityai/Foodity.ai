@@ -1,19 +1,20 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 let greetingsSet = new Set();
 try {
-  const filePath = path.join(__dirname, '../data/greetings.json');
-  if (fs.existsSync(filePath)) {
-    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  const { readFileSync, existsSync } = await import('fs');
+  const { dirname, join } = await import('path');
+  const { fileURLToPath } = await import('url');
+
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const filePath = join(__dirname, '../data/greetings.json');
+
+  if (existsSync(filePath)) {
+    const data = JSON.parse(readFileSync(filePath, 'utf8'));
     greetingsSet = new Set(data);
   }
 } catch (e) {
-  console.warn('[Intent] Failed to load greetings.json dataset.');
+  // Graceful fallback — intent detection still works without the expanded set
+  console.warn('[Intent] Greetings dataset unavailable, using inline fallback.');
 }
 
 /**
