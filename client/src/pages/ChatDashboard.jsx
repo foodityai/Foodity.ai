@@ -244,7 +244,10 @@ export default function ChatDashboard() {
           profile: payloadProfile,
         }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      console.log("RAW RESPONSE:", text);
+
+      const data = JSON.parse(text);
 
       if (!res.ok) {
         if (res.status === 429) setLimitReached(true);
