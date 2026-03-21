@@ -1,4 +1,4 @@
-import '../config/env.js';
+
 import { tavily } from '@tavily/core';
 
 const NUTRITION_PROMPT = `Role: Foodity AI. Strict domain: Food, nutrition, health, fitness.
