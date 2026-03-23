@@ -166,10 +166,12 @@ try {
 
   // ── STEP 2: Nutrition Intelligence Pipeline (USDA + Search + Model + Cache) ──
   let nutritionContext = null;
+  let nisResult = null;
+
   if (!search) {
     // NIS web search controlled independently from the user's "browser_search" tool
     const useNISSearch = userContext.enableSuggestions !== false;
-    const nisResult = await processNutritionQuery(message, useNISSearch);
+    nisResult = await processNutritionQuery(message, useNISSearch);
 
     if (nisResult.isFoodQuery && nisResult.foods && nisResult.foods.length > 0) {
       // Separate resolved foods from unresolved ones
