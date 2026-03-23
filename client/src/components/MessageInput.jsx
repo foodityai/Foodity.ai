@@ -27,7 +27,7 @@ export default function MessageInput({ onSend, disabled, inputRef, onSparkTrigge
     }
   }, [input, inputRef]);
 
-  const handleSubmit = (e) => {
+  const handleSend = (e) => {
     if (e) e.preventDefault();
     if (!input.trim() || disabled) return;
     onSparkTrigger?.();
@@ -37,20 +37,21 @@ export default function MessageInput({ onSend, disabled, inputRef, onSparkTrigge
     setIsToolMenuOpen(false);
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
-      inputRef.current.focus();
+      // Only focus on desktop - avoid keyboard fight on mobile
+      if (window.innerWidth > 768) inputRef.current.focus();
     }
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit();
+      handleSend();
     }
   };
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={handleSend}
       className="relative max-w-3xl mx-auto px-2 sm:px-0"
     >
       <div 
@@ -105,7 +106,6 @@ export default function MessageInput({ onSend, disabled, inputRef, onSparkTrigge
           placeholder="Message Foodity..."
           disabled={disabled}
           rows={1}
-          autoFocus
           style={{ color: 'var(--text-primary)' }}
           className="flex-1 max-h-[160px] bg-transparent outline-none border-none resize-none px-2 py-2 text-[15px] leading-relaxed placeholder:opacity-50 disabled:opacity-50"
         />
@@ -146,13 +146,15 @@ export default function MessageInput({ onSend, disabled, inputRef, onSparkTrigge
           </AnimatePresence>
 
           <button
-            type="submit"
-            disabled={!input.trim() || disabled}
+            type="button"
+            onClick={handleSend}
+            onTouchEnd={(e) => { e.preventDefault(); handleSend(); }}
+            aria-label="Send message"
             className={clsx(
-              'p-2 rounded-full transition-all duration-200',
+              'p-2 rounded-full transition-all duration-200 select-none',
               input.trim() && !disabled
-                ? 'bg-[#22c55e] text-white shadow-sm hover:scale-105 active:scale-95'
-                : 'bg-black/10 dark:bg-white/10 text-black/20 dark:text-white/20'
+                ? 'bg-[#22c55e] text-white shadow-sm active:scale-95'
+                : 'bg-black/10 dark:bg-white/10 text-black/20 dark:text-white/20 cursor-default'
             )}
           >
             <SendHorizontal className="w-5 h-5" />
