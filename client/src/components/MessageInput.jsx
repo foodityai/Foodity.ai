@@ -146,9 +146,14 @@ export default function MessageInput({ onSend, disabled, inputRef, onSparkTrigge
           </AnimatePresence>
 
           <button
-            type="button"
-            onClick={handleSend}
-            onTouchEnd={(e) => { e.preventDefault(); handleSend(); }}
+            type="submit"
+            onPointerDown={(e) => {
+              // Prevent default to stop input blur & keyboard closing
+              if (input.trim() && !disabled) {
+                e.preventDefault();
+                handleSend(e);
+              }
+            }}
             aria-label="Send message"
             className={clsx(
               'p-2 rounded-full transition-all duration-200 select-none',
