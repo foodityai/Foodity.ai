@@ -57,7 +57,7 @@ export function classifyQuery(text = '') {
 
   // Greetings / social — no API needed
   const greetingPatterns = [
-    /^(hi|hello|hey|howdy|hiya|good\s*(morning|evening|afternoon|night))[!.,\s]*$/,
+    /^(hi|hello|hey|howdy|hiya|yo|yo!|yo\.|good\s*(morning|evening|afternoon|night))[!.,\s]*$/,
     /^(thanks?|thank you|thx|tysm|ty)[!.,\s]*$/,
     /^(bye|goodbye|see\s*ya|later|cya)[!.,\s]*$/,
     /^(ok|okay|got\s*it|sure|alright|cool)[!.,\s]*$/,

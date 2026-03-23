@@ -230,6 +230,7 @@ try {
   }
 
   // --- Generate AI response (with System Caching) ---
+  const queryType = nisResult?.type || 'nutrition';
   const isCacheable = !search && 
                       history.length === 0 && 
                       !message.toLowerCase().includes('today') && 
@@ -240,7 +241,7 @@ try {
     aiReply = getCachedAIResponse(message);
     console.log(`[LLM Cache HIT] Returning cached format for: "${message}"`);
   } else {
-    aiReply = await getAIResponse(message, nutritionContext, searchResults, userContext, history, mealLog);
+    aiReply = await getAIResponse(message, nutritionContext, searchResults, userContext, history, mealLog, queryType);
     if (isCacheable) {
       setCachedAIResponse(message, aiReply);
     }

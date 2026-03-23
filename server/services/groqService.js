@@ -67,7 +67,11 @@ STRICT RULES (NEVER VIOLATE):
 5. ALWAYS include all 10 micronutrients inside the <details> block
 6. If time-based suggestions are enabled, append them ONLY inside the <details> block, not outside`;
 
-
+const GREETING_PROMPT = `You are Foodity AI, a friendly and helpful nutrition and health assistant.
+The user is greeting you or starting a conversation.
+1. Respond warmly and concisely (e.g., "Hi Valtooy! How can I help you today?").
+2. Mention that you can help with nutrition analysis, meal logging, or health advice.
+3. Keep it to 1-2 sentences. No tables, no strict nutrition format unless food is mentioned.`;
 
 const HEALTH_PROMPT = `You are Foodity Health Corner, a friendly wellness and health advisor.
 
@@ -84,9 +88,15 @@ FORMAT:
 STYLE: Be like a knowledgeable friend — supportive, clear, not clinical.`;
 
 // Build the dynamic system prompt based on user context settings
-function buildSystemPrompt(userContext, mealLog = null) {
+function buildSystemPrompt(userContext, mealLog = null, queryType = 'nutrition') {
   const mode = userContext?.ai_mode || 'nutrition';
-  let baseModePrompt = mode === 'health' ? HEALTH_PROMPT : NUTRITION_PROMPT;
+  
+  let baseModePrompt = NUTRITION_PROMPT;
+  if (queryType === 'greeting' || queryType === 'general') {
+    baseModePrompt = GREETING_PROMPT;
+  } else if (mode === 'health' || queryType === 'health') {
+    baseModePrompt = HEALTH_PROMPT;
+  }
 
   const localTimeStr = userContext?.local_time || new Date().toISOString();
   const d = new Date(localTimeStr);
@@ -223,14 +233,14 @@ export async function generateChatSummary(message) {
   }
 }
 
-export async function getAIResponse(message, nutritionContext = null, searchResults = null, userContext = null, history = [], mealLog = null) {
+export async function getAIResponse(message, nutritionContext = null, searchResults = null, userContext = null, history = [], mealLog = null, queryType = 'nutrition') {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey || apiKey === 'YOUR_GROQ_API_KEY_HERE' || apiKey === 'your_groq_api_key_here') {
     throw new Error('GROQ_API_KEY is not configured.');
   }
 
   // Choose prompt based on AI mode
-  const messages = [{ role: 'system', content: buildSystemPrompt(userContext, mealLog) }];
+  const messages = [{ role: 'system', content: buildSystemPrompt(userContext, mealLog, queryType) }];
 
   if (userContext) {
     const suggestionsEnabled = userContext.enableSuggestions !== false;

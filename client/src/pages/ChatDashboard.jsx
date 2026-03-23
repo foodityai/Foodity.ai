@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import API_BASE from '../config/api';
 import Sidebar from '../components/Sidebar';
 import TopBar from '../components/TopBar';
 import ChatArea from '../components/ChatArea';
@@ -33,9 +34,9 @@ export default function ChatDashboard() {
 
 
   // Chef mascot animation state
-  const [chefState, setChefState]           = useState('idle'); // idle|catching|cooking_simple|cooking_complex|serving
-  const [showSpark, setShowSpark]           = useState(false);
-  const [flyingText, setFlyingText]         = useState('');
+  const [chefState, setChefState] = useState('idle'); // idle|catching|cooking_simple|cooking_complex|serving
+  const [showSpark, setShowSpark] = useState(false);
+  const [flyingText, setFlyingText] = useState('');
   const [pendingAiMessage, setPendingAiMessage] = useState(null);
 
   // Welcome screen vs chat area transition
@@ -55,7 +56,10 @@ export default function ChatDashboard() {
   const inputRef = useRef(null);
   const userId = auth.currentUser?.uid || 'anonymous';
 
-  useEffect(() => { fetchChats(); }, []);
+  useEffect(() => {
+    console.log("API:", import.meta.env.VITE_API_URL);
+    fetchChats();
+  }, []);
 
   useEffect(() => {
     if (activeChatId) {
@@ -79,7 +83,7 @@ export default function ChatDashboard() {
 
   const fetchChats = async () => {
     try {
-      const res = await fetch('/api/chats', { headers: { 'x-user-id': userId } });
+      const res = await fetch(`${API_BASE}/api/chats`, { headers: { 'x-user-id': userId } });
       const data = await res.json();
       // Ensure local state uses specific spec properties
       const mapped = (data.chats || []).map(chat => ({
@@ -96,7 +100,7 @@ export default function ChatDashboard() {
     setActiveChatId(chatId);
     setMessages([]);
     try {
-      const res = await fetch(`/api/messages?chat_id=${chatId}`);
+      const res = await fetch(`${API_BASE}/api/messages?chat_id=${chatId}`);
       const data = await res.json();
       const loaded = (data.messages || []).map(m => ({
         id: m.id, role: m.role === 'assistant' ? 'ai' : m.role, content: m.content,
@@ -116,7 +120,7 @@ export default function ChatDashboard() {
 
   const handleDeleteChat = async (chatId) => {
     try {
-      const res = await fetch(`/api/chats/${chatId}`, {
+      const res = await fetch(`${API_BASE}/api/chats/${chatId}`, {
         method: 'DELETE',
         headers: { 'x-user-id': userId }
       });
@@ -143,7 +147,7 @@ export default function ChatDashboard() {
     if (updates.archived !== undefined) backendUpdates.is_archived = updates.archived;
 
     try {
-      const res = await fetch(`/api/chats/${chatId}`, {
+      const res = await fetch(`${API_BASE}/api/chats/${chatId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -234,7 +238,7 @@ export default function ChatDashboard() {
         meal_type: mealType
       };
 
-      const res = await fetch('/api/chat', {
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-user-id': userId },
         body: JSON.stringify({
@@ -319,7 +323,7 @@ export default function ChatDashboard() {
         showPopup={showPopup}
       />
 
-      <ConfirmModal 
+      <ConfirmModal
         isOpen={!!confirmDeleteChat}
         onClose={() => setConfirmDeleteChat(null)}
         onConfirm={() => handleDeleteChat(confirmDeleteChat)}
@@ -327,7 +331,7 @@ export default function ChatDashboard() {
         message="This will permanently remove this conversation and all its messages. This action cannot be undone."
       />
 
-      <QuickPopup 
+      <QuickPopup
         isOpen={quickPopup.isOpen}
         message={quickPopup.message}
         type={quickPopup.type}
