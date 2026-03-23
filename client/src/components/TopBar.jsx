@@ -7,7 +7,7 @@ const MODES = [
   { id: 'health',    label: 'Health Corner', emoji: '💚', desc: 'Wellness & health advice' },
 ];
 
-export default function TopBar({ isSidebarOpen, toggleSidebar, theme, toggleTheme, profile, onProfileOpen, aiMode, setAiMode }) {
+export default function TopBar({ isSidebarOpen, toggleSidebar, theme, toggleTheme, profile, onProfileOpen, aiMode, setAiMode, isNewUser }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -26,7 +26,7 @@ export default function TopBar({ isSidebarOpen, toggleSidebar, theme, toggleThem
 
   return (
     <header
-      className="h-14 flex items-center justify-between px-4 lg:px-5 sticky top-0 z-10"
+      className="h-14 flex items-center justify-between px-2 sm:px-4 lg:px-5 sticky top-0 z-10"
       style={{
         background: 'var(--topbar-bg)',
         borderBottom: '1px solid var(--border)',
@@ -34,6 +34,16 @@ export default function TopBar({ isSidebarOpen, toggleSidebar, theme, toggleThem
         WebkitBackdropFilter: 'blur(12px)',
       }}
     >
+      <style>{`
+        @keyframes profile-pulse {
+          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+          70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        .animate-profile-pulse {
+          animation: profile-pulse 2s infinite;
+        }
+      `}</style>
       {/* ── Left: toggle + logo + mode dropdown ── */}
       <div className="flex items-center gap-2">
         <button
@@ -136,7 +146,10 @@ export default function TopBar({ isSidebarOpen, toggleSidebar, theme, toggleThem
         <div
           id="open-profile"
           onClick={onProfileOpen}
-          className="w-8 h-8 rounded-full bg-gradient-to-br from-[#22c55e] to-[#16a34a] flex items-center justify-center text-white font-bold text-sm shadow-sm cursor-pointer hover:scale-105 transition-transform"
+          className={clsx(
+            "w-8 h-8 rounded-full bg-gradient-to-br from-[#22c55e] to-[#16a34a] flex items-center justify-center text-white font-bold text-sm shadow-sm cursor-pointer hover:scale-105 transition-all outline outline-offset-2 outline-transparent",
+            isNewUser && "animate-profile-pulse outline-[#22c55e]"
+          )}
           title="Profile"
         >
           {profile?.username?.charAt(0)?.toUpperCase() || 'U'}

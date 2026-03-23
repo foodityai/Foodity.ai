@@ -19,7 +19,7 @@ export default function ProfileModal({ isOpen, onClose, profile, updateProfile, 
   };
 
   const handleSave = () => {
-    updateProfile(temp);
+    updateProfile({ ...temp, isNewUser: false });
     if (showPopup) showPopup('✅ Profile Updated Successfully', 'success');
     onClose();
   };

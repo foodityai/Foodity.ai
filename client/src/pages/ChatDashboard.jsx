@@ -299,9 +299,7 @@ export default function ChatDashboard() {
   const isTransitioning = viewState === 'transitioning';
 
   return (
-    <div
-      style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}
-      className="flex h-screen overflow-hidden transition-colors duration-300"
+    <div className="flex h-[100dvh] w-full overflow-hidden transition-colors duration-300"
     >
       {/* ── Modals ── */}
       <ProfileModal
@@ -327,8 +325,8 @@ export default function ChatDashboard() {
         isOpen={!!confirmDeleteChat}
         onClose={() => setConfirmDeleteChat(null)}
         onConfirm={() => handleDeleteChat(confirmDeleteChat)}
-        title="Delete Chat?"
-        message="This will permanently remove this conversation and all its messages. This action cannot be undone."
+        title="Delete Conversation?"
+        message="This will permanently delete this chat history. This action cannot be undone."
       />
 
       <QuickPopup
@@ -381,9 +379,28 @@ export default function ChatDashboard() {
           onProfileOpen={() => setIsProfileOpen(true)}
           aiMode={aiMode}
           setAiMode={setAiMode}
+          isNewUser={profile.isNewUser}
         />
 
         <main className="flex-1 flex flex-col relative overflow-hidden">
+          {/* New User Onboarding Overlay */}
+          {profile.isNewUser && !isProfileOpen && (
+            <div className="absolute inset-0 z-[40] backdrop-blur-md bg-white/10 dark:bg-black/10 flex items-center justify-center p-6 text-center">
+              <div className="max-w-sm bg-white dark:bg-dark-800 p-8 rounded-3xl shadow-2xl border border-black/5 dark:border-white/5 animate-in fade-in zoom-in duration-500">
+                <div className="text-4xl mb-4">👋</div>
+                <h3 className="text-xl font-bold mb-2">Welcome to Foodity!</h3>
+                <p className="text-sm opacity-70 mb-6">
+                  To give you the best nutritional advice, please complete your profile first.
+                </p>
+                <button 
+                  onClick={() => setIsProfileOpen(true)}
+                  className="w-full py-3 bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold rounded-2xl shadow-lg shadow-green-500/30 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  Complete Profile
+                </button>
+              </div>
+            </div>
+          )}
           {(isWelcome || isTransitioning) && (
             <div
               className="absolute inset-0 flex flex-col z-10"

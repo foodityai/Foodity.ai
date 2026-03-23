@@ -59,7 +59,7 @@ export default function Sidebar({ isOpen, setIsOpen, chats = [], activeChatId, o
         WebkitBackdropFilter: 'blur(16px)',
         color: 'var(--text-primary)',
       }}
-      className="w-full h-full flex flex-col overflow-visible"
+      className="w-full h-[100dvh] flex flex-col overflow-hidden"
     >
       {/* Header */}
       <div className="p-4 flex items-center justify-between gap-3" style={{ borderBottom: '1px solid var(--sidebar-border)' }}>
@@ -97,7 +97,7 @@ export default function Sidebar({ isOpen, setIsOpen, chats = [], activeChatId, o
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto px-3 py-1 space-y-4 pb-20">
+      <div className="flex-1 overflow-y-auto px-3 py-1 space-y-4 pb-32 scrollbar-hide">
         <div className="space-y-0.5">
           {chats.length > 0 ? (
             chats.map(chat => <ChatItem key={chat.id} chat={chat} />)
